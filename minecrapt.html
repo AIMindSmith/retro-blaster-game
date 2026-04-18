@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MineCrapt - Voxel Builder</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #1a1a2e;
+            overflow: hidden;
+            font-family: 'Press Start 2P', monospace;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        canvas {
+            display: block;
+            cursor: crosshair;
+        }
+
+        #ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            pointer-events: none;
+        }
+
+        #crosshair::before,
+        #crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        #crosshair::before {
+            width: 2px;
+            height: 20px;
+            left: 9px;
+            top: 0;
+        }
+
+        #crosshair::after {
+            width: 20px;
+            height: 2px;
+            left: 0;
+            top: 9px;
+        }
+
+        #hotbar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 5px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px solid #555;
+        }
+
+        .hotbar-slot {
+            width: 50px;
+            height: 50px;
+            background: rgba(50, 50, 50, 0.8);
+            border: 3px solid #777;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            font-size: 10px;
+        }
+
+        .hotbar-slot.active {
+            border-color: #fbbf24;
+            box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+        }
+
+        .hotbar-slot .key {
+            position: absolute;
+            top: 2px;
+            left: 4px;
+            font-size: 8px;
+            color: #aaa;
+        }
+
+        .block-icon {
+            width: 32px;
+            height: 32px;
+            border: 2px solid rgba(0, 0, 0, 0.3);
+        }
+
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            font-size: 12px;
+            line-height: 1.8;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        #instructions {
+            position: absolute;
+            bottom: 100px;
+            left: 20px;
+            color: #aaa;
+            font-size: 10px;
+            line-height: 1.6;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+        .menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+        }
+
+        .menu h1 {
+            color: #4ade80;
+            font-size: 48px;
+            margin-bottom: 10px;
+            text-shadow: 4px 4px 0 #166534;
+        }
+
+        .menu h2 {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 40px;
+        }
+
+        .menu-btn {
+            background: #3b82f6;
+            color: #fff;
+            border: none;
+            padding: 15px 40px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 14px;
+            cursor: pointer;
+            margin: 10px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            border: 3px solid #1d4ed8;
+        }
+
+        .menu-btn:hover {
+            background: #2563eb;
+            transform: scale(1.05);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        #blockHighlight {
+            position: absolute;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            pointer-events: none;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="ui">
+            <div id="crosshair"></div>
+
+            <div id="info">
+                <div id="fps">FPS: 60</div>
+                <div id="coords">X: 0 Y: 0 Z: 0</div>
+                <div id="blocks">Blocks: 0</div>
+            </div>
+
+            <div id="instructions">
+                WASD - Move<br>
+                SPACE - Jump<br>
+                Mouse - Look<br>
+                Left Click - Break<br>
+                Right Click - Place<br>
+                1-8 - Select Block<br>
+                ESC - Menu
+            </div>
+
+            <div id="hotbar">
+                <div class="hotbar-slot active" data-slot="0">
+                    <span class="key">1</span>
+                    <div class="block-icon" style="background: #8B4513;"></div>
+                </div>
+                <div class="hotbar-slot" data-slot="1">
+                    <span class="key">2</span>
+                    <div class="block-icon" style="background: #7CFC00;"></div>
+                </div>
+                <div class="hotbar-slot" data-slot="2">
+                    <span class="key">3</span>
+                    <div class="block-icon" style="background: #808080;"></div>
+                </div>
+                <div class="hotbar-slot" data-slot="3">
+                    <span class="key">4</span>
+                    <div class="block-icon" style="background: #DEB887;"></div>
+                </div>
+                <div class="hotbar-slot" data-slot="4">
+                    <span class="key">5</span>
+                    <div class="block-icon" style="background: #FFD700;"></div>
+                </div>
+                <div class="hotbar-slot" data-slot="5">
+                    <span class="key">6</span>
+                    <div class="block-icon" style="background: #FF6B6B;"></div>
+                </div>
+                <div class="hotbar-slot" data-slot="6">
+                    <span class="key">7</span>
+                    <div class="block-icon" style="background: #4ECDC4;"></div>
+                </div>
+                <div class="hotbar-slot" data-slot="7">
+                    <span class="key">8</span>
+                    <div class="block-icon" style="background: #FFFFFF;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="mainMenu" class="menu">
+            <h1>MINECRAPT</h1>
+            <h2>A Voxel Building Adventure</h2>
+            <button class="menu-btn" onclick="startGame()">PLAY GAME</button>
+            <button class="menu-btn" onclick="showInstructions()">HOW TO PLAY</button>
+        </div>
+
+        <div id="pauseMenu" class="menu hidden">
+            <h1>PAUSED</h1>
+            <button class="menu-btn" onclick="resumeGame()">RESUME</button>
+            <button class="menu-btn" onclick="returnToMenu()">MAIN MENU</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas size
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Game state
+        const GameState = {
+            MENU: 'menu',
+            PLAYING: 'playing',
+            PAUSED: 'paused'
+        };
+        let gameState = GameState.MENU;
+        let frame = 0;
+        let fps = 60;
+        let lastTime = performance.now();
+
+        // World settings
+        const WORLD_SIZE = 64;
+        const CHUNK_HEIGHT = 32;
+        const BLOCK_SIZE = 40;
+        const RENDER_DISTANCE = 48;
+
+        // Block types
+        const BLOCKS = {
+            AIR: 0,
+            DIRT: 1,
+            GRASS: 2,
+            STONE: 3,
+            WOOD: 4,
+            SAND: 5,
+            BRICK: 6,
+            GLASS: 7,
+            LEAVES: 8
+        };
+
+        const BLOCK_COLORS = {
+            [BLOCKS.DIRT]: { top: '#8B4513', side: '#654321', bottom: '#5D3A1A' },
+            [BLOCKS.GRASS]: { top: '#7CFC00', side: '#8B4513', bottom: '#5D3A1A' },
+            [BLOCKS.STONE]: { top: '#808080', side: '#696969', bottom: '#505050' },
+            [BLOCKS.WOOD]: { top: '#DEB887', side: '#8B7355', bottom: '#654321' },
+            [BLOCKS.SAND]: { top: '#F4A460', side: '#DEB887', bottom: '#CD853F' },
+            [BLOCKS.BRICK]: { top: '#B22222', side: '#8B0000', bottom: '#660000' },
+            [BLOCKS.GLASS]: { top: '#87CEEB', side: '#ADD8E6', bottom: '#B0E0E6', alpha: 0.6 },
+            [BLOCKS.LEAVES]: { top: '#228B22', side: '#006400', bottom: '#004d00' }
+        };
+
+        // Inventory
+        let selectedSlot = 0;
+        const inventory = [
+            BLOCKS.DIRT,
+            BLOCKS.GRASS,
+            BLOCKS.STONE,
+            BLOCKS.WOOD,
+            BLOCKS.SAND,
+            BLOCKS.BRICK,
+            BLOCKS.GLASS,
+            BLOCKS.LEAVES
+        ];
+
+        // Player
+        const player = {
+            x: WORLD_SIZE / 2,
+            y: CHUNK_HEIGHT + 10,
+            z: WORLD_SIZE / 2,
+            vx: 0,
+            vy: 0,
+            vz: 0,
+            yaw: 0,
+            pitch: 0,
+            height: 1.8,
+            width: 0.6,
+            onGround: false,
+            speed: 0.15,
+            jumpSpeed: 0.35
+        };
+
+        // Input handling
+        const keys = {};
+        const mouse = { x: 0, y: 0, locked: false };
+
+        // World data - using a Map for sparse storage
+        const world = new Map();
+
+        // Simple noise function for terrain generation
+        function noise(x, z) {
+            const X = Math.floor(x);
+            const Z = Math.floor(z);
+            return (Math.sin(X * 12.9898 + Z * 78.233) * 43758.5453) % 1;
+        }
+
+        function smoothNoise(x, z) {
+            const corners = (noise(x - 1, z - 1) + noise(x + 1, z - 1) + noise(x - 1, z + 1) + noise(x + 1, z + 1)) / 16;
+            const sides = (noise(x - 1, z) + noise(x + 1, z) + noise(x, z - 1) + noise(x, z + 1)) / 8;
+            const center = noise(x, z) / 4;
+            return corners + sides + center;
+        }
+
+        // Generate world
+        function generateWorld() {
+            for (let x = 0; x < WORLD_SIZE; x++) {
+                for (let z = 0; z < WORLD_SIZE; z++) {
+                    // Terrain height
+                    const height = Math.floor(8 + smoothNoise(x * 0.1, z * 0.1) * 8);
+
+                    for (let y = 0; y <= height && y < CHUNK_HEIGHT; y++) {
+                        let block;
+                        if (y === height) {
+                            block = BLOCKS.GRASS;
+                        } else if (y > height - 4) {
+                            block = BLOCKS.DIRT;
+                        } else {
+                            block = BLOCKS.STONE;
+                        }
+                        setBlock(x, y, z, block);
+                    }
+
+                    // Occasional trees
+                    if (Math.random() < 0.02 && height < CHUNK_HEIGHT - 5) {
+                        generateTree(x, height + 1, z);
+                    }
+                }
+            }
+            updateBlockCount();
+        }
+
+        function generateTree(x, y, z) {
+            // Trunk
+            for (let i = 0; i < 4; i++) {
+                setBlock(x, y + i, z, BLOCKS.WOOD);
+            }
+
+            // Leaves
+            for (let lx = x - 2; lx <= x + 2; lx++) {
+                for (let lz = z - 2; lz <= z + 2; lz++) {
+                    for (let ly = y + 3; ly <= y + 5; ly++) {
+                        if (Math.abs(lx - x) + Math.abs(lz - z) + Math.abs(ly - (y + 4)) < 4) {
+                            if (getBlock(lx, ly, lz) === BLOCKS.AIR) {
+                                setBlock(lx, ly, lz, BLOCKS.LEAVES);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Block management
+        function getKey(x, y, z) {
+            return `${x},${y},${z}`;
+        }
+
+        function getBlock(x, y, z) {
+            if (y < 0 || y >= CHUNK_HEIGHT) return BLOCKS.AIR;
+            return world.get(getKey(x, y, z)) || BLOCKS.AIR;
+        }
+
+        function setBlock(x, y, z, type) {
+            if (y < 0 || y >= CHUNK_HEIGHT) return;
+            const key = getKey(x, y, z);
+            if (type === BLOCKS.AIR) {
+                world.delete(key);
+            } else {
+                world.set(key, type);
+            }
+            updateBlockCount();
+        }
+
+        function updateBlockCount() {
+            document.getElementById('blocks').textContent = `Blocks: ${world.size}`;
+        }
+
+        // 3D projection
+        function project(x, y, z) {
+            const dx = x - player.x;
+            const dy = y - player.y;
+            const dz = z - player.z;
+
+            // Rotate around Y axis (yaw)
+            const cosYaw = Math.cos(player.yaw);
+            const sinYaw = Math.sin(player.yaw);
+            const rx = dx * cosYaw - dz * sinYaw;
+            const rz = dx * sinYaw + dz * cosYaw;
+
+            // Rotate around X axis (pitch)
+            const cosPitch = Math.cos(player.pitch);
+            const sinPitch = Math.sin(player.pitch);
+            const ry = dy * cosPitch - rz * sinPitch;
+            const rz2 = dy * sinPitch + rz * cosPitch;
+
+            // Project to screen
+            const fov = 800;
+            if (rz2 <= 0) return null;
+
+            const scale = fov / rz2;
+            const screenX = canvas.width / 2 + rx * scale;
+            const screenY = canvas.height / 2 - ry * scale;
+
+            return { x: screenX, y: screenY, scale: scale, depth: rz2 };
+        }
+
+        // Draw a cube face
+        function drawFace(points, color, alpha = 1) {
+            if (points.some(p => p === null)) return;
+
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // Draw block
+        function drawBlock(x, y, z, type) {
+            if (type === BLOCKS.AIR) return;
+
+            const colors = BLOCK_COLORS[type];
+            if (!colors) return;
+
+            // Calculate face visibility and depth
+            const faces = [];
+
+            // Top face
+            if (!isSolid(getBlock(x, y + 1, z))) {
+                const p1 = project(x - 0.5, y + 0.5, z - 0.5);
+                const p2 = project(x + 0.5, y + 0.5, z - 0.5);
+                const p3 = project(x + 0.5, y + 0.5, z + 0.5);
+                const p4 = project(x - 0.5, y + 0.5, z + 0.5);
+                if (p1 && p2 && p3 && p4) {
+                    faces.push({
+                        points: [p1, p2, p3, p4],
+                        color: colors.top,
+                        depth: (p1.depth + p2.depth + p3.depth + p4.depth) / 4,
+                        alpha: colors.alpha || 1
+                    });
+                }
+            }
+
+            // Side faces
+            if (!isSolid(getBlock(x, y, z - 1))) {
+                const p1 = project(x - 0.5, y - 0.5, z - 0.5);
+                const p2 = project(x + 0.5, y - 0.5, z - 0.5);
+                const p3 = project(x + 0.5, y + 0.5, z - 0.5);
+                const p4 = project(x - 0.5, y + 0.5, z - 0.5);
+                if (p1 && p2 && p3 && p4) {
+                    faces.push({
+                        points: [p1, p2, p3, p4],
+                        color: colors.side,
+                        depth: (p1.depth + p2.depth + p3.depth + p4.depth) / 4,
+                        alpha: colors.alpha || 1
+                    });
+                }
+            }
+
+            if (!isSolid(getBlock(x, y, z + 1))) {
+                const p1 = project(x + 0.5, y - 0.5, z + 0.5);
+                const p2 = project(x - 0.5, y - 0.5, z + 0.5);
+                const p3 = project(x - 0.5, y + 0.5, z + 0.5);
+                const p4 = project(x + 0.5, y + 0.5, z + 0.5);
+                if (p1 && p2 && p3 && p4) {
+                    faces.push({
+                        points: [p1, p2, p3, p4],
+                        color: colors.side,
+                        depth: (p1.depth + p2.depth + p3.depth + p4.depth) / 4,
+                        alpha: colors.alpha || 1
+                    });
+                }
+            }
+
+            if (!isSolid(getBlock(x - 1, y, z))) {
+                const p1 = project(x - 0.5, y - 0.5, z + 0.5);
+                const p2 = project(x - 0.5, y - 0.5, z - 0.5);
+                const p3 = project(x - 0.5, y + 0.5, z - 0.5);
+                const p4 = project(x - 0.5, y + 0.5, z + 0.5);
+                if (p1 && p2 && p3 && p4) {
+                    faces.push({
+                        points: [p1, p2, p3, p4],
+                        color: colors.side,
+                        depth: (p1.depth + p2.depth + p3.depth + p4.depth) / 4,
+                        alpha: colors.alpha || 1
+                    });
+                }
+            }
+
+            if (!isSolid(getBlock(x + 1, y, z))) {
+                const p1 = project(x + 0.5, y - 0.5, z - 0.5);
+                const p2 = project(x + 0.5, y - 0.5, z + 0.5);
+                const p3 = project(x + 0.5, y + 0.5, z + 0.5);
+                const p4 = project(x + 0.5, y + 0.5, z - 0.5);
+                if (p1 && p2 && p3 && p4) {
+                    faces.push({
+                        points: [p1, p2, p3, p4],
+                        color: colors.side,
+                        depth: (p1.depth + p2.depth + p3.depth + p4.depth) / 4,
+                        alpha: colors.alpha || 1
+                    });
+                }
+            }
+
+            // Bottom face
+            if (!isSolid(getBlock(x, y - 1, z))) {
+                const p1 = project(x - 0.5, y - 0.5, z + 0.5);
+                const p2 = project(x + 0.5, y - 0.5, z + 0.5);
+                const p3 = project(x + 0.5, y - 0.5, z - 0.5);
+                const p4 = project(x - 0.5, y - 0.5, z - 0.5);
+                if (p1 && p2 && p3 && p4) {
+                    faces.push({
+                        points: [p1, p2, p3, p4],
+                        color: colors.bottom,
+                        depth: (p1.depth + p2.depth + p3.depth + p4.depth) / 4,
+                        alpha: colors.alpha || 1
+                    });
+                }
+            }
+
+            return faces;
+        }
+
+        function isSolid(block) {
+            return block !== BLOCKS.AIR && block !== BLOCKS.GLASS && block !== BLOCKS.LEAVES;
+        }
+
+        // Ray casting for block selection
+        function rayCast(maxDistance = 5) {
+            const step = 0.1;
+            const dx = Math.cos(player.yaw) * Math.cos(player.pitch);
+            const dy = Math.sin(player.pitch);
+            const dz = Math.sin(player.yaw) * Math.cos(player.pitch);
+
+            for (let d = 0; d < maxDistance; d += step) {
+                const x = Math.floor(player.x + dx * d);
+                const y = Math.floor(player.y + dy * d);
+                const z = Math.floor(player.z + dz * d);
+
+                const block = getBlock(x, y, z);
+                if (block !== BLOCKS.AIR) {
+                    return { x, y, z, face: getFaceNormal(dx, dy, dz) };
+                }
+            }
+            return null;
+        }
+
+        function getFaceNormal(dx, dy, dz) {
+            const absX = Math.abs(dx);
+            const absY = Math.abs(dy);
+            const absZ = Math.abs(dz);
+
+            if (absX > absY && absX > absZ) return { x: dx > 0 ? -1 : 1, y: 0, z: 0 };
+            if (absY > absZ) return { x: 0, y: dy > 0 ? -1 : 1, z: 0 };
+            return { x: 0, y: 0, z: dz > 0 ? -1 : 1 };
+        }
+
+        // Physics
+        function updatePhysics() {
+            // Apply gravity
+            player.vy -= 0.02;
+
+            // Apply velocity
+            player.x += player.vx;
+            player.y += player.vy;
+            player.z += player.vz;
+
+            // Friction
+            player.vx *= 0.8;
+            player.vz *= 0.8;
+
+            // Collision detection
+            const groundY = Math.floor(player.y - player.height / 2);
+            if (isSolid(getBlock(Math.floor(player.x), groundY, Math.floor(player.z)))) {
+                player.y = groundY + 1 + player.height / 2;
+                player.vy = 0;
+                player.onGround = true;
+            } else {
+                player.onGround = false;
+            }
+
+            // Bounds
+            player.x = Math.max(1, Math.min(WORLD_SIZE - 1, player.x));
+            player.z = Math.max(1, Math.min(WORLD_SIZE - 1, player.z));
+            player.y = Math.max(1, Math.min(CHUNK_HEIGHT - 1, player.y));
+
+            // Update coords display
+            document.getElementById('coords').textContent =
+                `X: ${Math.floor(player.x)} Y: ${Math.floor(player.y)} Z: ${Math.floor(player.z)}`;
+        }
+
+        // Input handling
+        document.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+
+            if (e.key === 'Escape') {
+                if (gameState === GameState.PLAYING) {
+                    pauseGame();
+                } else if (gameState === GameState.PAUSED) {
+                    resumeGame();
+                }
+            }
+
+            // Number keys for hotbar
+            if (e.key >= '1' && e.key <= '8') {
+                selectSlot(parseInt(e.key) - 1);
+            }
+
+            // Jump
+            if (e.key === ' ' && player.onGround && gameState === GameState.PLAYING) {
+                player.vy = player.jumpSpeed;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+        });
+
+        // Mouse look
+        document.addEventListener('mousemove', (e) => {
+            if (gameState === GameState.PLAYING && mouse.locked) {
+                player.yaw += e.movementX * 0.002;
+                player.pitch -= e.movementY * 0.002;
+                player.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, player.pitch));
+            }
+        });
+
+        // Mouse buttons for mining/placing
+        document.addEventListener('mousedown', (e) => {
+            if (gameState !== GameState.PLAYING) return;
+
+            if (e.button === 0) {
+                // Left click - break block
+                const target = rayCast(5);
+                if (target) {
+                    setBlock(target.x, target.y, target.z, BLOCKS.AIR);
+                }
+            } else if (e.button === 2) {
+                // Right click - place block
+                const target = rayCast(5);
+                if (target) {
+                    const newX = target.x + target.face.x;
+                    const newY = target.y + target.face.y;
+                    const newZ = target.z + target.face.z;
+
+                    // Don't place block inside player
+                    const playerBlockX = Math.floor(player.x);
+                    const playerBlockY = Math.floor(player.y);
+                    const playerBlockZ = Math.floor(player.z);
+
+                    if (!(newX === playerBlockX && newY === playerBlockY && newZ === playerBlockZ)) {
+                        setBlock(newX, newY, newZ, inventory[selectedSlot]);
+                    }
+                }
+            }
+        });
+
+        // Prevent context menu
+        document.addEventListener('contextmenu', e => e.preventDefault());
+
+        // Pointer lock
+        canvas.addEventListener('click', () => {
+            if (gameState === GameState.PLAYING && !mouse.locked) {
+                canvas.requestPointerLock();
+            }
+        });
+
+        document.addEventListener('pointerlockchange', () => {
+            mouse.locked = document.pointerLockElement === canvas;
+        });
+
+        // Hotbar selection
+        function selectSlot(slot) {
+            selectedSlot = slot;
+            document.querySelectorAll('.hotbar-slot').forEach((el, i) => {
+                el.classList.toggle('active', i === slot);
+            });
+        }
+
+        document.querySelectorAll('.hotbar-slot').forEach(slot => {
+            slot.addEventListener('click', () => {
+                selectSlot(parseInt(slot.dataset.slot));
+            });
+        });
+
+        // Game control functions
+        function startGame() {
+            document.getElementById('mainMenu').classList.add('hidden');
+            gameState = GameState.PLAYING;
+
+            // Reset player
+            player.x = WORLD_SIZE / 2;
+            player.y = CHUNK_HEIGHT + 5;
+            player.z = WORLD_SIZE / 2;
+            player.vx = 0;
+            player.vy = 0;
+            player.vz = 0;
+            player.yaw = 0;
+            player.pitch = 0;
+
+            // Generate world if empty
+            if (world.size === 0) {
+                generateWorld();
+            }
+
+            canvas.requestPointerLock();
+        }
+
+        function pauseGame() {
+            gameState = GameState.PAUSED;
+            document.getElementById('pauseMenu').classList.remove('hidden');
+            document.exitPointerLock();
+        }
+
+        function resumeGame() {
+            gameState = GameState.PLAYING;
+            document.getElementById('pauseMenu').classList.add('hidden');
+            canvas.requestPointerLock();
+        }
+
+        function returnToMenu() {
+            gameState = GameState.MENU;
+            document.getElementById('pauseMenu').classList.add('hidden');
+            document.getElementById('mainMenu').classList.remove('hidden');
+            document.exitPointerLock();
+        }
+
+        function showInstructions() {
+            alert('CONTROLS:\n\nWASD - Move around\nSPACE - Jump\nMOUSE - Look around\nLEFT CLICK - Break blocks\nRIGHT CLICK - Place blocks\n1-8 - Select block type\nESC - Open menu\n\nBuild anything you can imagine!');
+        }
+
+        // Main game loop
+        function update() {
+            if (gameState === GameState.PLAYING) {
+                // Movement
+                const forward = (keys['w'] ? 1 : 0) - (keys['s'] ? 1 : 0);
+                const right = (keys['d'] ? 1 : 0) - (keys['a'] ? 1 : 0);
+
+                const cosYaw = Math.cos(player.yaw);
+                const sinYaw = Math.sin(player.yaw);
+
+                player.vx += (forward * sinYaw + right * cosYaw) * player.speed * 0.1;
+                player.vz += (forward * cosYaw - right * sinYaw) * player.speed * 0.1;
+
+                updatePhysics();
+            }
+        }
+
+        function draw() {
+            // Clear with sky gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#87CEEB');
+            gradient.addColorStop(0.5, '#E0F6FF');
+            gradient.addColorStop(1, '#E8F4E8');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (gameState === GameState.PLAYING || gameState === GameState.PAUSED) {
+                // Collect all visible faces
+                const faces = [];
+
+                const pX = Math.floor(player.x);
+                const pY = Math.floor(player.y);
+                const pZ = Math.floor(player.z);
+
+                for (let x = Math.max(0, pX - RENDER_DISTANCE); x < Math.min(WORLD_SIZE, pX + RENDER_DISTANCE); x++) {
+                    for (let z = Math.max(0, pZ - RENDER_DISTANCE); z < Math.min(WORLD_SIZE, pZ + RENDER_DISTANCE); z++) {
+                        for (let y = 0; y < CHUNK_HEIGHT; y++) {
+                            const block = getBlock(x, y, z);
+                            if (block !== BLOCKS.AIR) {
+                                const dx = x - player.x;
+                                const dy = y - player.y;
+                                const dz = z - player.z;
+                                const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+                                if (dist < RENDER_DISTANCE) {
+                                    const blockFaces = drawBlock(x, y, z, block);
+                                    if (blockFaces) {
+                                        blockFaces.forEach(face => faces.push(face));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Sort faces by depth (back to front)
+                faces.sort((a, b) => b.depth - a.depth);
+
+                // Draw all faces
+                faces.forEach(face => {
+                    drawFace(face.points, face.color, face.alpha);
+                });
+            }
+
+            // Update FPS
+            frame++;
+            const now = performance.now();
+            if (now - lastTime >= 1000) {
+                fps = Math.round(frame * 1000 / (now - lastTime));
+                document.getElementById('fps').textContent = `FPS: ${fps}`;
+                frame = 0;
+                lastTime = now;
+            }
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Handle resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // Start
+        gameLoop();
+    </script>
+</body>
+</html>
