@@ -8,8 +8,6 @@ This repository contains HTML5 Canvas games built with vanilla JavaScript.
 
 A retro arcade-style shooter game with procedural sprites and intense action.
 
-![Retro Blaster Screenshot](screenshot.png)
-
 ## Features
 
 - **Procedural Pixel Art Sprites** - All graphics generated programmatically
@@ -39,31 +37,64 @@ A retro arcade-style shooter game with procedural sprites and intense action.
 5. Chain kills for combo multipliers
 6. Clear 3 waves to advance to the next level
 
-## Game Mechanics
+---
 
-### Enemy Types
+# MINECRAPT
 
-| Type | Health | Speed | Damage | Score |
-|------|--------|-------|--------|-------|
-| Basic | 50 | Medium | 10 | 100 |
-| Fast | 30 | Fast | 8 | 150 |
-| Tank | 150 | Slow | 20 | 300 |
-| Boss | 500 | Very Slow | 30 | 1000 |
+A 3D voxel builder game inspired by Minecraft. Build, mine, and explore a blocky world!
 
-### Power-ups
+## Features
 
-- **Health** (Green) - Restore 30 HP
-- **Speed** (Blue) - Increase movement speed
-- **Multishot** (Orange) - Fire 3 bullets at once
-- **Shield** (Purple) - Temporary invincibility
+- **3D Voxel Engine** - Custom 3D projection with depth sorting
+- **Procedural Terrain** - Generated worlds with hills, valleys, and trees
+- **8 Block Types** - Dirt, Grass, Stone, Wood, Sand, Brick, Glass, and Leaves
+- **Mining & Building** - Left click to break, right click to place
+- **First-Person Controls** - WASD movement with mouse look
+- **Physics** - Gravity, jumping, and collision detection
+- **Hotbar Inventory** - Quick access to all block types
 
-## Technical Details
+## Controls
 
-- Pure JavaScript (no external libraries)
-- HTML5 Canvas rendering
-- 60 FPS game loop
-- Procedural sprite generation
-- Collision detection with spatial optimization
+| Key | Action |
+|-----|--------|
+| **WASD** | Move |
+| **SPACE** | Jump |
+| **Mouse** | Look around |
+| **Left Click** | Break block |
+| **Right Click** | Place block |
+| **1-8** | Select block type |
+| **ESC** | Open menu |
+
+## How to Play
+
+1. Open `minecrapt.html` in any modern browser
+2. Click **PLAY GAME** to start
+3. Click on the game to lock your mouse
+4. Walk around with WASD, look with mouse
+5. Left click to mine blocks
+6. Right click to place your selected block
+7. Build anything you can imagine!
+
+## Block Types
+
+| Block | Color | Properties |
+|-------|-------|------------|
+| Grass | Green top | Natural terrain |
+| Dirt | Brown | Underground/terrain |
+| Stone | Gray | Deep underground |
+| Wood | Beige | Tree trunks |
+| Sand | Yellow | Beaches/deserts |
+| Brick | Red | Building material |
+| Glass | Light blue | Transparent |
+| Leaves | Dark green | Tree canopies |
+
+---
+
+## Play These Games
+
+1. Download or clone this repository
+2. Open either HTML file in your browser
+3. Start playing!
 
 ## Browser Compatibility
 
