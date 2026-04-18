@@ -1,8 +1,14 @@
+# Game Collection
+
+This repository contains HTML5 Canvas games built with vanilla JavaScript.
+
+---
+
 # RETRO BLASTER
 
-A retro arcade-style shooter game built with HTML5 Canvas and vanilla JavaScript.
+A retro arcade-style shooter game with procedural sprites and intense action.
 
-![Game Screenshot](screenshot.png)
+![Retro Blaster Screenshot](screenshot.png)
 
 ## Features
 
